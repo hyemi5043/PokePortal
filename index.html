@@ -26,7 +26,7 @@ body {
   font-family:Arial,"Noto Sans KR",sans-serif;
 }
 header {
-  padding:22px max(18px,calc((100% - 1300px)/2);
+  padding:22px max(18px,calc((100% - 1300px)/2));
   background:#151b28;
   border-bottom:1px solid var(--border);
 }
@@ -336,9 +336,9 @@ const API = "https://pokeapi.co/api/v2";
 const ART =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/";
 
-// Supabase 프로젝트 정보
-const SUPABASE_URL = "https://tqnrgjnaczccspvgffho.supabase.co";
-const SUPABASE_KEY = "sb_publishable_zg9geGZKzm-Hm3er1Xg21g_CPBCBNTp";
+// Supabase 프로젝트 정보 입력
+const SUPABASE_URL = "여기에_프로젝트_URL";
+const SUPABASE_KEY = "여기에_publishable_키";
 
 const GEN = {
   1:[1,151], 2:[152,251], 3:[252,386],
@@ -589,15 +589,14 @@ $("copyRoomCode").addEventListener("click", async () => {
   }
 });
 
-// 최종진화체 목록을 불러오는 함수
+// CSV 형태가 아니라 API의 한국어 종 이름 데이터를 사용
 async function loadPokemon() {
   try {
     $("turn").textContent = "포켓몬 목록을 불러오는 중...";
-    $("detail").textContent = "한국어 이름과 진화 단계를 확인하고 있습니다.";
+    $("detail").textContent = "한국어 이름을 준비하고 있습니다.";
     $("message").textContent = "포켓몬 목록을 불러오는 중입니다.";
 
     const response = await fetch(`${API}/pokemon?limit=1025`);
-
     if (!response.ok) {
       throw new Error("PokéAPI 목록 요청 실패");
     }
@@ -616,15 +615,15 @@ async function loadPokemon() {
     .filter(p => p.id >= 1 && p.id <= 1025)
     .sort((a, b) => a.id - b.id);
 
-    const evolutionChainURLs = new Set();
+    // 포켓몬 목록은 먼저 표시하고, 한글 이름은 차례대로 채움
+    state.loading = false;
+    renderAll();
+
+    $("message").textContent = "한국어 포켓몬 이름을 불러오는 중입니다.";
+
     const batchSize = 12;
 
-    // 1. 한국어 이름과 진화 체인 주소 불러오기
-    for (
-      let start = 0;
-      start < state.pokemon.length;
-      start += batchSize
-    ) {
+    for (let start = 0; start < state.pokemon.length; start += batchSize) {
       const batch = state.pokemon.slice(start, start + batchSize);
 
       await Promise.all(batch.map(async p => {
@@ -633,9 +632,7 @@ async function loadPokemon() {
             `${API}/pokemon-species/${p.id}/`
           );
 
-          if (!speciesResponse.ok) {
-            throw new Error(`No.${p.id} 종 데이터 요청 실패`);
-          }
+          if (!speciesResponse.ok) return;
 
           const species = await speciesResponse.json();
 
@@ -646,13 +643,9 @@ async function loadPokemon() {
           if (koreanName?.name) {
             p.korean = koreanName.name;
           }
-
-          if (species.evolution_chain?.url) {
-            evolutionChainURLs.add(species.evolution_chain.url);
-          }
         } catch (error) {
           console.warn(
-            `No.${p.id} 종 데이터 로드 실패`,
+            `No.${p.id} 한국어 이름 로드 실패`,
             error
           );
         }
@@ -664,79 +657,15 @@ async function loadPokemon() {
       );
 
       $("message").textContent =
-        `포켓몬 종 데이터 확인 중... ${loaded}/${state.pokemon.length}`;
+        `한국어 이름 불러오는 중... ${loaded}/${state.pokemon.length}`;
+
+      renderAll();
     }
-
-    // 2. 모든 진화 체인에서 최종진화체의 도감 번호를 수집
-    const finalSpeciesIds = new Set();
-    const chainURLs = [...evolutionChainURLs];
-
-    for (
-      let start = 0;
-      start < chainURLs.length;
-      start += batchSize
-    ) {
-      const batch = chainURLs.slice(start, start + batchSize);
-
-      await Promise.all(batch.map(async url => {
-        try {
-          const chainResponse = await fetch(url);
-
-          if (!chainResponse.ok) {
-            throw new Error("진화 체인 요청 실패");
-          }
-
-          const chainData = await chainResponse.json();
-
-          function collectFinalEvolutions(node) {
-            if (!node) return;
-
-            const evolutions = node.evolves_to || [];
-
-            // 더 이상 진화하지 않는 종을 최종진화체로 분류
-            if (evolutions.length === 0) {
-              const match = node.species.url.match(
-                /\/pokemon-species\/(\d+)\/?/
-              );
-
-              if (match) {
-                finalSpeciesIds.add(Number(match[1]));
-              }
-
-              return;
-            }
-
-            // 분기 진화가 있으면 모든 분기를 각각 검사
-            evolutions.forEach(collectFinalEvolutions);
-          }
-
-          collectFinalEvolutions(chainData.chain);
-        } catch (error) {
-          console.warn("진화 체인 로드 실패:", url, error);
-        }
-      }));
-
-      $("message").textContent =
-        `최종진화 단계 확인 중... ${Math.min(
-          start + batchSize,
-          chainURLs.length
-        )}/${chainURLs.length}`;
-    }
-
-    // 3. 최종진화체와 진화하지 않는 포켓몬만 남김
-    state.pokemon = state.pokemon.filter(
-      p => finalSpeciesIds.has(p.id)
-    );
-
-    if (state.pokemon.length === 0) {
-      throw new Error("최종진화 포켓몬 목록을 만들지 못했습니다.");
-    }
-
-    state.loading = false;
-    renderAll();
 
     $("message").textContent =
-      `최종진화 포켓몬 ${state.pokemon.length}마리를 불러왔습니다. 선택하세요.`;
+      "한국어 이름을 불러왔습니다. 포켓몬을 선택하세요.";
+
+    renderAll();
 
   } catch (error) {
     console.error(error);
@@ -745,7 +674,7 @@ async function loadPokemon() {
     $("detail").textContent =
       "인터넷 연결을 확인하고 새로고침해 주세요.";
     $("message").textContent =
-      "포켓몬 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+      "포켓몬 데이터를 불러오지 못했습니다.";
     $("count").textContent = "로드 실패";
   }
 }
