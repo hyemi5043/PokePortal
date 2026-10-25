@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PokeDraft - Double Battle</title>
+
 <style>
 :root {
   color-scheme: dark;
@@ -41,49 +42,103 @@ main {max-width:1300px;margin:auto;padding:22px}
   margin-bottom:18px;
 }
 .topline {
-  display:flex;justify-content:space-between;
-  gap:12px;align-items:center;flex-wrap:wrap
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  flex-wrap:wrap
 }
 .pill {
-  border-radius:20px;padding:7px 11px;
-  background:#26344c;color:#a9c8ff;font-size:12px
+  border-radius:20px;
+  padding:7px 11px;
+  background:#26344c;
+  color:#a9c8ff;
+  font-size:12px
 }
 h2 {font-size:19px;margin:0 0 14px}
 h3 {font-size:15px;margin:0 0 12px}
 #turn {font-size:23px;font-weight:800;margin:12px 0 7px}
-#detail,#message {color:var(--muted);font-size:13px;line-height:1.6}
+#detail,#message,#onlineStatus {
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.6
+}
 .progress {
-  height:7px;background:#30394b;border-radius:8px;
-  overflow:hidden;margin-top:15px
+  height:7px;
+  background:#30394b;
+  border-radius:8px;
+  overflow:hidden;
+  margin-top:15px
 }
-#bar {height:100%;width:0;background:var(--yellow);transition:width .2s}
+#bar {
+  height:100%;
+  width:0;
+  background:var(--yellow);
+  transition:width .2s
+}
 .teams {
-  display:grid;grid-template-columns:1fr 1fr;gap:14px
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px
 }
-.team {border:2px solid var(--border);border-radius:15px;padding:14px;min-width:0}
+.team {
+  border:2px solid var(--border);
+  border-radius:15px;
+  padding:14px;
+  min-width:0
+}
 .team.blue.active {border-color:var(--blue)}
 .team.red.active {border-color:var(--red)}
 .team.blue h2 {color:#80b0ff}
 .team.red h2 {color:#ff8996}
-.team-title {display:flex;justify-content:space-between;gap:8px}
-.roster {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.slot {
-  background:#101622;border:1px solid #2c3548;
-  border-radius:11px;min-width:0;min-height:112px;
-  display:flex;flex-direction:column;align-items:center;
-  justify-content:center;padding:5px;text-align:center;
-  font-size:12px;overflow-wrap:anywhere
+.team-title {
+  display:flex;
+  justify-content:space-between;
+  gap:8px
 }
-.slot img {width:72px;max-width:100%;height:72px;object-fit:contain}
+.roster {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px
+}
+.slot {
+  background:#101622;
+  border:1px solid #2c3548;
+  border-radius:11px;
+  min-width:0;
+  min-height:112px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:5px;
+  text-align:center;
+  font-size:12px;
+  overflow-wrap:anywhere
+}
+.slot img {
+  width:72px;
+  max-width:100%;
+  height:72px;
+  object-fit:contain
+}
 .slot.empty {border-style:dashed;color:#63718a}
 .controls {
-  display:flex;gap:9px;flex-wrap:wrap;margin:18px 0
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+  margin:18px 0
 }
 input,select,button {
-  border:1px solid var(--border);border-radius:10px;
-  padding:11px 13px;font:inherit
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:11px 13px;
+  font:inherit
 }
-input,select {background:var(--panel);color:var(--text)}
+input,select {
+  background:var(--panel);
+  color:var(--text)
+}
 input {flex:1;min-width:180px}
 button {background:#29354a;color:white;cursor:pointer}
 button:hover:not(:disabled) {filter:brightness(1.2)}
@@ -96,58 +151,94 @@ button.danger {background:#402631}
   gap:11px
 }
 .card {
-  position:relative;min-width:0;
-  border:1px solid var(--border);border-radius:13px;
-  background:var(--panel);color:var(--text);
-  padding:10px;display:flex;flex-direction:column;
-  align-items:center;text-align:center;gap:5px
+  position:relative;
+  min-width:0;
+  border:1px solid var(--border);
+  border-radius:13px;
+  background:var(--panel);
+  color:var(--text);
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  gap:5px
 }
-.card img {width:100%;max-width:110px;aspect-ratio:1;object-fit:contain}
+.card img {
+  width:100%;
+  max-width:110px;
+  aspect-ratio:1;
+  object-fit:contain
+}
 .card .name {font-weight:700;overflow-wrap:anywhere}
 .card small {color:var(--muted)}
 .card.picked {opacity:.38}
 .card.picked:after {
-  content:"선택 완료";color:var(--yellow);
-  font-size:12px;margin-top:4px
+  content:"선택 완료";
+  color:var(--yellow);
+  font-size:12px;
+  margin-top:4px
 }
 .card:disabled {cursor:not-allowed}
 .section-head {
-  display:flex;justify-content:space-between;
-  align-items:center;gap:10px;margin:24px 0 13px
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin:24px 0 13px
 }
 .section-head h2 {margin:0}
 #count {color:var(--muted);font-size:12px}
 #result {display:none}
 #result pre {
-  white-space:pre-wrap;overflow-wrap:anywhere;
-  line-height:1.8;font-family:inherit
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  line-height:1.8;
+  font-family:inherit
 }
 .history {display:grid;gap:7px}
 .history-row {
-  display:flex;gap:10px;align-items:center;
-  background:#111724;border-radius:9px;padding:9px 11px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  background:#111724;
+  border-radius:9px;
+  padding:9px 11px;
   font-size:13px
 }
-.history-row img {width:35px;height:35px;object-fit:contain}
+.history-row img {
+  width:35px;
+  height:35px;
+  object-fit:contain
+}
 .history-row small {color:var(--muted);margin-left:auto}
-footer {text-align:center;padding:25px;color:var(--muted);font-size:12px}
+footer {
+  text-align:center;
+  padding:25px;
+  color:var(--muted);
+  font-size:12px
+}
 @media(max-width:600px) {
   main {padding:12px}
   .teams {gap:8px}
   .team {padding:9px}
   .slot {min-height:80px;font-size:10px}
   .slot img {height:49px}
-  #grid {grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  #grid {
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:7px
+  }
   .card {padding:6px;font-size:12px}
   .card img {max-width:85px}
   #turn {font-size:19px}
 }
 </style>
 </head>
+
 <body>
 <header>
   <div class="logo">POKE<span>DRAFT</span></div>
-  <div class="subtitle">SNAKE DRAFT · DOUBLE BATTLE · LOCAL MODE</div>
+  <div class="subtitle">SNAKE DRAFT · DOUBLE BATTLE · ONLINE MODE</div>
 </header>
 
 <main>
@@ -169,6 +260,7 @@ footer {text-align:center;padding:25px;color:var(--muted);font-size:12px}
       </div>
       <div class="roster" id="roster0"></div>
     </div>
+
     <div class="team red" id="team1">
       <div class="team-title">
         <h2>🔴 플레이어 2</h2>
@@ -178,8 +270,19 @@ footer {text-align:center;padding:25px;color:var(--muted);font-size:12px}
     </div>
   </section>
 
+  <section class="panel" id="onlinePanel">
+    <h2>🌐 온라인 드래프트</h2>
+    <p id="onlineStatus">방을 만들거나 친구의 방에 참가하세요.</p>
+    <div class="controls">
+      <button class="primary" id="createRoom">방 만들기</button>
+      <input id="roomCode" placeholder="6자리 방 코드" maxlength="6" autocomplete="off">
+      <button id="joinRoom">방 참가</button>
+      <button id="copyRoomCode">방 코드 복사</button>
+    </div>
+  </section>
+
   <div class="controls">
-    <input id="search" placeholder="포켓몬 이름 또는 전국도감 번호 검색">
+    <input id="search" placeholder="포켓몬 한글 이름 또는 전국도감 번호 검색">
     <select id="generation">
       <option value="all">전체 세대</option>
       <option value="1">1세대</option>
@@ -224,12 +327,18 @@ footer {text-align:center;padding:25px;color:var(--muted);font-size:12px}
   Fan-made project. Pokémon names and artwork belong to their respective owners.
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 "use strict";
 
 const API = "https://pokeapi.co/api/v2";
 const ART =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/";
+
+// Supabase 프로젝트 정보 입력
+const SUPABASE_URL = "여기에_프로젝트_URL";
+const SUPABASE_KEY = "여기에_publishable_키";
 
 const GEN = {
   1:[1,151], 2:[152,251], 3:[252,386],
@@ -245,14 +354,30 @@ const state = {
   loading: true
 };
 
-// 스네이크 드래프트: 1, 2, 2, 1 반복
-// 12픽: P1, P2, P2, P1, P1, P2, P2, P1, P1, P2, P2, P1
-function playerForPick(pickNumber) {
-  const pattern = [0,1,1,0];
-  return pattern[pickNumber % 4];
+const $ = id => document.getElementById(id);
+
+let supa = null;
+let roomChannel = null;
+let onlinePlayer = null;
+let currentRoomCode = "";
+let lastReceivedState = null;
+
+const hasSupabaseConfig =
+  SUPABASE_URL.startsWith("https://") &&
+  !SUPABASE_URL.includes("여기에_") &&
+  SUPABASE_KEY.length > 20 &&
+  !SUPABASE_KEY.includes("여기에_");
+
+if (window.supabase && hasSupabaseConfig) {
+  supa = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
 }
 
-const $ = id => document.getElementById(id);
+function playerForPick(pickNumber) {
+  return [0,1,1,0][pickNumber % 4];
+}
 
 function generationOf(id) {
   for (const [gen, range] of Object.entries(GEN)) {
@@ -284,38 +409,272 @@ function makeElement(tag, className, text) {
   return el;
 }
 
+function generateRoomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+async function broadcastState() {
+  if (!roomChannel || onlinePlayer === null) return;
+
+  const payload = {
+    teams: state.teams.map(team => team.map(p => p.id)),
+    history: state.history.map(entry => ({
+      player: entry.player,
+      id: entry.pokemon.id
+    }))
+  };
+
+  const { error } = await roomChannel.send({
+    type: "broadcast",
+    event: "draft_state",
+    payload
+  });
+
+  if (error) {
+    $("onlineStatus").textContent =
+      "상태 전송에 실패했습니다. 연결을 확인해 주세요.";
+  }
+}
+
+function applyRemoteState(payload) {
+  if (
+    !payload ||
+    !Array.isArray(payload.teams) ||
+    payload.teams.length !== 2 ||
+    !Array.isArray(payload.history)
+  ) return;
+
+  const signature = JSON.stringify(payload);
+  if (signature === lastReceivedState) return;
+
+  const pokemonById = new Map(
+    state.pokemon.map(p => [p.id, p])
+  );
+
+  const newTeams = payload.teams.map(team =>
+    Array.isArray(team)
+      ? team.map(id => pokemonById.get(Number(id))).filter(Boolean)
+      : []
+  );
+
+  if (newTeams.some(team => team.length > 6)) return;
+  if (newTeams[0].length + newTeams[1].length > 12) return;
+
+  const newHistory = payload.history
+    .map(entry => ({
+      player: Number(entry.player),
+      pokemon: pokemonById.get(Number(entry.id))
+    }))
+    .filter(entry =>
+      entry.pokemon &&
+      (entry.player === 0 || entry.player === 1)
+    );
+
+  lastReceivedState = signature;
+  state.teams = newTeams;
+  state.history = newHistory;
+
+  renderAll();
+
+  $("onlineStatus").textContent =
+    `방 ${currentRoomCode} 연결됨 · 플레이어 ${onlinePlayer + 1}`;
+}
+
+function connectToRoom(code, playerNumber) {
+  if (!supa) {
+    alert(
+      "Supabase 설정이 필요합니다.\n" +
+      "SUPABASE_URL과 SUPABASE_KEY를 입력해 주세요."
+    );
+    return;
+  }
+
+  if (roomChannel) {
+    supa.removeChannel(roomChannel);
+    roomChannel = null;
+  }
+
+  currentRoomCode = code;
+  onlinePlayer = playerNumber;
+  lastReceivedState = null;
+
+  $("onlineStatus").textContent = `방 ${code} 연결 중...`;
+
+  roomChannel = supa
+    .channel("poke-draft-" + code)
+    .on("broadcast", { event: "draft_state" }, ({ payload }) => {
+      applyRemoteState(payload);
+    })
+    .on("broadcast", { event: "request_state" }, async () => {
+      if (onlinePlayer === 0) {
+        await broadcastState();
+      }
+    })
+    .subscribe(async status => {
+      if (status === "SUBSCRIBED") {
+        $("onlineStatus").textContent =
+          `방 ${code} 연결 완료 · 플레이어 ${playerNumber + 1}`;
+
+        if (playerNumber === 0) {
+          state.teams = [[],[]];
+          state.history = [];
+          renderAll();
+          await broadcastState();
+        } else {
+          await roomChannel.send({
+            type: "broadcast",
+            event: "request_state",
+            payload: {}
+          });
+        }
+      } else if (
+        status === "CHANNEL_ERROR" ||
+        status === "TIMED_OUT"
+      ) {
+        $("onlineStatus").textContent =
+          "방 연결 실패. 설정과 인터넷 연결을 확인해 주세요.";
+      }
+    });
+}
+
+function createOnlineRoom() {
+  if (!supa) {
+    alert("먼저 Supabase 프로젝트 URL과 publishable 키를 입력해 주세요.");
+    return;
+  }
+
+  const code = generateRoomCode();
+  $("roomCode").value = code;
+  connectToRoom(code, 0);
+}
+
+function joinOnlineRoom() {
+  const code = $("roomCode").value.trim().toUpperCase();
+
+  if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
+    alert("올바른 6자리 방 코드를 입력해 주세요.");
+    return;
+  }
+
+  if (!supa) {
+    alert("먼저 Supabase 프로젝트 URL과 publishable 키를 입력해 주세요.");
+    return;
+  }
+
+  connectToRoom(code, 1);
+}
+
+$("createRoom").addEventListener("click", createOnlineRoom);
+$("joinRoom").addEventListener("click", joinOnlineRoom);
+
+$("copyRoomCode").addEventListener("click", async () => {
+  const code = currentRoomCode;
+
+  if (!code) {
+    alert("먼저 방을 만들어 주세요.");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(code);
+    $("onlineStatus").textContent =
+      `방 코드 ${code}를 복사했습니다. 친구에게 보내 주세요.`;
+  } catch {
+    prompt("친구에게 이 방 코드를 보내 주세요:", code);
+  }
+});
+
+// CSV 형태가 아니라 API의 한국어 종 이름 데이터를 사용
 async function loadPokemon() {
   try {
-    // species URL을 파싱하는 대신 실제 포켓몬 API 목록을 사용한다.
-    const response = await fetch(`${API}/pokemon?limit=2000`);
-    if (!response.ok) throw new Error("PokéAPI request failed");
+    $("turn").textContent = "포켓몬 목록을 불러오는 중...";
+    $("detail").textContent = "한국어 이름을 준비하고 있습니다.";
+    $("message").textContent = "포켓몬 목록을 불러오는 중입니다.";
+
+    const response = await fetch(`${API}/pokemon?limit=1025`);
+    if (!response.ok) {
+      throw new Error("PokéAPI 목록 요청 실패");
+    }
 
     const data = await response.json();
 
     state.pokemon = data.results.map(item => {
       const match = item.url.match(/\/pokemon\/(\d+)\/?$/);
+
       return {
         id: match ? Number(match[1]) : 0,
         name: item.name,
         korean: null
       };
     })
-    .filter(p => p.id > 0 && p.id <= 1025)
-    .sort((a,b) => a.id - b.id);
+    .filter(p => p.id >= 1 && p.id <= 1025)
+    .sort((a, b) => a.id - b.id);
 
-    // 목록은 즉시 표시한다. 모든 포켓몬의 상세 API를
-    // 처음부터 1,000회 이상 호출하지 않는다.
+    // 포켓몬 목록은 먼저 표시하고, 한글 이름은 차례대로 채움
     state.loading = false;
+    renderAll();
+
+    $("message").textContent = "한국어 포켓몬 이름을 불러오는 중입니다.";
+
+    const batchSize = 12;
+
+    for (let start = 0; start < state.pokemon.length; start += batchSize) {
+      const batch = state.pokemon.slice(start, start + batchSize);
+
+      await Promise.all(batch.map(async p => {
+        try {
+          const speciesResponse = await fetch(
+            `${API}/pokemon-species/${p.id}/`
+          );
+
+          if (!speciesResponse.ok) return;
+
+          const species = await speciesResponse.json();
+
+          const koreanName = species.names?.find(
+            entry => entry.language?.name === "ko"
+          );
+
+          if (koreanName?.name) {
+            p.korean = koreanName.name;
+          }
+        } catch (error) {
+          console.warn(
+            `No.${p.id} 한국어 이름 로드 실패`,
+            error
+          );
+        }
+      }));
+
+      const loaded = Math.min(
+        start + batchSize,
+        state.pokemon.length
+      );
+
+      $("message").textContent =
+        `한국어 이름 불러오는 중... ${loaded}/${state.pokemon.length}`;
+
+      renderAll();
+    }
+
     $("message").textContent =
-      "포켓몬을 선택해 드래프트를 진행하세요. 이름은 기본적으로 영문입니다.";
+      "한국어 이름을 불러왔습니다. 포켓몬을 선택하세요.";
+
     renderAll();
 
   } catch (error) {
+    console.error(error);
+
     $("turn").textContent = "목록을 불러오지 못했습니다.";
     $("detail").textContent =
       "인터넷 연결을 확인하고 새로고침해 주세요.";
     $("message").textContent =
-      "PokéAPI 연결에 실패했습니다.";
+      "포켓몬 데이터를 불러오지 못했습니다.";
     $("count").textContent = "로드 실패";
   }
 }
@@ -346,7 +705,12 @@ function renderStatus() {
     "active", !complete && state.currentPlayer === 1
   );
 
-  $("undo").disabled = state.history.length === 0;
+  const last = state.history[state.history.length - 1];
+
+  $("undo").disabled =
+    state.history.length === 0 ||
+    (onlinePlayer !== null && last?.player !== onlinePlayer);
+
   $("result").style.display = complete ? "block" : "none";
 
   if (complete) renderResult();
@@ -386,36 +750,51 @@ function renderPokemon() {
   const query = $("search").value.trim().toLowerCase();
   const gen = $("generation").value;
   const picked = selectedIds();
+  const currentTurn = playerForPick(state.history.length);
 
   const filtered = state.pokemon.filter(p => {
-    const nameMatch =
-      p.name.toLowerCase().includes(query) ||
-      String(p.id) === query;
+    const englishMatch = p.name.toLowerCase().includes(query);
+    const koreanMatch = p.korean
+      ? p.korean.toLowerCase().includes(query)
+      : false;
+    const numberMatch = String(p.id) === query;
+
     const genMatch =
       gen === "all" || generationOf(p.id) === Number(gen);
-    return nameMatch && genMatch;
+
+    return (englishMatch || koreanMatch || numberMatch) && genMatch;
   });
 
-  $("count").textContent =
-    `${filtered.length.toLocaleString()}마리`;
+  $("count").textContent = `${filtered.length.toLocaleString()}마리`;
 
   const fragment = document.createDocumentFragment();
 
   filtered.forEach(p => {
     const isPicked = picked.has(p.id);
+
     const card = makeElement(
       "button", "card" + (isPicked ? " picked" : "")
     );
 
     card.type = "button";
-    card.disabled = isPicked || isComplete() || state.loading;
-    card.setAttribute("aria-label", `${p.name} 선택`);
+    card.disabled =
+      isPicked ||
+      isComplete() ||
+      state.loading ||
+      (onlinePlayer !== null && onlinePlayer !== currentTurn);
+
+    card.setAttribute(
+      "aria-label",
+      `${getDisplayName(p)} 선택`
+    );
 
     const img = makeElement("img");
     img.src = imageURL(p.id);
-    img.alt = p.name;
+    img.alt = getDisplayName(p);
     img.loading = "lazy";
-    img.onerror = () => { img.style.visibility = "hidden"; };
+    img.onerror = () => {
+      img.style.visibility = "hidden";
+    };
 
     const name = makeElement("span", "name", getDisplayName(p));
     const number = makeElement(
@@ -443,13 +822,15 @@ function renderHistory() {
 
   state.history.forEach((entry, index) => {
     const row = makeElement("div", "history-row");
+
     const img = makeElement("img");
     img.src = imageURL(entry.pokemon.id);
-    img.alt = "";
+    img.alt = getDisplayName(entry.pokemon);
 
     const name = makeElement(
       "span", "", getDisplayName(entry.pokemon)
     );
+
     const label = makeElement(
       "small", "",
       `${index + 1}픽 · 플레이어 ${entry.player + 1}`
@@ -476,7 +857,7 @@ function renderAll() {
   renderHistory();
 }
 
-function pickPokemon(id) {
+async function pickPokemon(id) {
   if (state.loading || isComplete()) return;
 
   const pokemon = state.pokemon.find(p => p.id === id);
@@ -484,40 +865,64 @@ function pickPokemon(id) {
 
   const player = playerForPick(state.history.length);
 
-  if (state.teams[player].length >= 6) {
-    $("message").textContent = "이 팀은 이미 6마리를 선택했습니다.";
+  if (onlinePlayer !== null && onlinePlayer !== player) {
+    $("message").textContent =
+      "상대방의 차례입니다. 상대방이 선택할 때까지 기다려 주세요.";
     return;
   }
 
-  const entry = { player, pokemon };
-  state.history.push(entry);
+  if (state.teams[player].length >= 6) {
+    $("message").textContent =
+      "이 팀은 이미 6마리를 선택했습니다.";
+    return;
+  }
+
+  state.history.push({ player, pokemon });
   state.teams[player].push(pokemon);
 
   $("message").textContent =
     `플레이어 ${player + 1}: ${getDisplayName(pokemon)} 선택 완료`;
 
   if (isComplete()) {
-    $("message").textContent = "양 팀의 6마리 선택이 완료됐습니다!";
+    $("message").textContent =
+      "양 팀의 6마리 선택이 완료됐습니다!";
   }
 
   renderAll();
+
+  if (onlinePlayer !== null) {
+    await broadcastState();
+  }
 }
 
-function undoPick() {
-  const entry = state.history.pop();
-  if (!entry) return;
+async function undoPick() {
+  const last = state.history[state.history.length - 1];
+  if (!last) return;
 
+  if (onlinePlayer !== null && last.player !== onlinePlayer) {
+    $("message").textContent =
+      "상대방이 마지막으로 선택했으므로 취소할 수 없습니다.";
+    return;
+  }
+
+  const entry = state.history.pop();
   state.teams[entry.player].pop();
 
   $("message").textContent =
     `${getDisplayName(entry.pokemon)} 선택을 취소했습니다.`;
 
   renderAll();
+
+  if (onlinePlayer !== null) {
+    await broadcastState();
+  }
 }
 
-function resetDraft() {
-  if (state.history.length &&
-      !confirm("현재 드래프트를 초기화할까요?")) return;
+async function resetDraft() {
+  if (
+    state.history.length &&
+    !confirm("현재 드래프트를 초기화할까요?")
+  ) return;
 
   state.teams = [[],[]];
   state.history = [];
@@ -525,6 +930,10 @@ function resetDraft() {
 
   $("message").textContent = "새 드래프트를 시작하세요.";
   renderAll();
+
+  if (onlinePlayer !== null) {
+    await broadcastState();
+  }
 }
 
 $("search").addEventListener("input", renderPokemon);
@@ -535,7 +944,9 @@ $("newDraft").addEventListener("click", resetDraft);
 
 $("copy").addEventListener("click", async () => {
   try {
-    await navigator.clipboard.writeText($("resultText").textContent);
+    await navigator.clipboard.writeText(
+      $("resultText").textContent
+    );
     $("message").textContent = "팀 결과를 복사했습니다.";
   } catch (error) {
     $("message").textContent =
