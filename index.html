@@ -1,0 +1,549 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PokeDraft - Double Battle</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg:#0d111b;
+  --panel:#171e2c;
+  --border:#303c52;
+  --blue:#4b8cff;
+  --red:#ff6174;
+  --yellow:#ffce58;
+  --text:#f3f5fc;
+  --muted:#9ca9bf;
+}
+* { box-sizing:border-box }
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,"Noto Sans KR",sans-serif;
+}
+header {
+  padding:22px max(18px,calc((100% - 1300px)/2));
+  background:#151b28;
+  border-bottom:1px solid var(--border);
+}
+.logo {font-size:27px;font-weight:900;letter-spacing:1px}
+.logo span {color:var(--yellow)}
+.subtitle {color:var(--muted);font-size:13px;margin-top:7px}
+main {max-width:1300px;margin:auto;padding:22px}
+.panel {
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px;
+  margin-bottom:18px;
+}
+.topline {
+  display:flex;justify-content:space-between;
+  gap:12px;align-items:center;flex-wrap:wrap
+}
+.pill {
+  border-radius:20px;padding:7px 11px;
+  background:#26344c;color:#a9c8ff;font-size:12px
+}
+h2 {font-size:19px;margin:0 0 14px}
+h3 {font-size:15px;margin:0 0 12px}
+#turn {font-size:23px;font-weight:800;margin:12px 0 7px}
+#detail,#message {color:var(--muted);font-size:13px;line-height:1.6}
+.progress {
+  height:7px;background:#30394b;border-radius:8px;
+  overflow:hidden;margin-top:15px
+}
+#bar {height:100%;width:0;background:var(--yellow);transition:width .2s}
+.teams {
+  display:grid;grid-template-columns:1fr 1fr;gap:14px
+}
+.team {border:2px solid var(--border);border-radius:15px;padding:14px;min-width:0}
+.team.blue.active {border-color:var(--blue)}
+.team.red.active {border-color:var(--red)}
+.team.blue h2 {color:#80b0ff}
+.team.red h2 {color:#ff8996}
+.team-title {display:flex;justify-content:space-between;gap:8px}
+.roster {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.slot {
+  background:#101622;border:1px solid #2c3548;
+  border-radius:11px;min-width:0;min-height:112px;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:5px;text-align:center;
+  font-size:12px;overflow-wrap:anywhere
+}
+.slot img {width:72px;max-width:100%;height:72px;object-fit:contain}
+.slot.empty {border-style:dashed;color:#63718a}
+.controls {
+  display:flex;gap:9px;flex-wrap:wrap;margin:18px 0
+}
+input,select,button {
+  border:1px solid var(--border);border-radius:10px;
+  padding:11px 13px;font:inherit
+}
+input,select {background:var(--panel);color:var(--text)}
+input {flex:1;min-width:180px}
+button {background:#29354a;color:white;cursor:pointer}
+button:hover:not(:disabled) {filter:brightness(1.2)}
+button:disabled {opacity:.4;cursor:not-allowed}
+button.primary {background:var(--blue);border-color:var(--blue)}
+button.danger {background:#402631}
+#grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+  gap:11px
+}
+.card {
+  position:relative;min-width:0;
+  border:1px solid var(--border);border-radius:13px;
+  background:var(--panel);color:var(--text);
+  padding:10px;display:flex;flex-direction:column;
+  align-items:center;text-align:center;gap:5px
+}
+.card img {width:100%;max-width:110px;aspect-ratio:1;object-fit:contain}
+.card .name {font-weight:700;overflow-wrap:anywhere}
+.card small {color:var(--muted)}
+.card.picked {opacity:.38}
+.card.picked:after {
+  content:"선택 완료";color:var(--yellow);
+  font-size:12px;margin-top:4px
+}
+.card:disabled {cursor:not-allowed}
+.section-head {
+  display:flex;justify-content:space-between;
+  align-items:center;gap:10px;margin:24px 0 13px
+}
+.section-head h2 {margin:0}
+#count {color:var(--muted);font-size:12px}
+#result {display:none}
+#result pre {
+  white-space:pre-wrap;overflow-wrap:anywhere;
+  line-height:1.8;font-family:inherit
+}
+.history {display:grid;gap:7px}
+.history-row {
+  display:flex;gap:10px;align-items:center;
+  background:#111724;border-radius:9px;padding:9px 11px;
+  font-size:13px
+}
+.history-row img {width:35px;height:35px;object-fit:contain}
+.history-row small {color:var(--muted);margin-left:auto}
+footer {text-align:center;padding:25px;color:var(--muted);font-size:12px}
+@media(max-width:600px) {
+  main {padding:12px}
+  .teams {gap:8px}
+  .team {padding:9px}
+  .slot {min-height:80px;font-size:10px}
+  .slot img {height:49px}
+  #grid {grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .card {padding:6px;font-size:12px}
+  .card img {max-width:85px}
+  #turn {font-size:19px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">POKE<span>DRAFT</span></div>
+  <div class="subtitle">SNAKE DRAFT · DOUBLE BATTLE · LOCAL MODE</div>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="topline">
+      <h2 style="margin:0">드래프트 진행 상황</h2>
+      <span class="pill">더블 배틀 · 6 vs 6</span>
+    </div>
+    <div id="turn">포켓몬 목록을 불러오는 중...</div>
+    <div id="detail">인터넷 연결을 확인해 주세요.</div>
+    <div class="progress"><div id="bar"></div></div>
+  </section>
+
+  <section class="teams">
+    <div class="team blue active" id="team0">
+      <div class="team-title">
+        <h2>🔵 플레이어 1</h2>
+        <strong id="score0">0 / 6</strong>
+      </div>
+      <div class="roster" id="roster0"></div>
+    </div>
+    <div class="team red" id="team1">
+      <div class="team-title">
+        <h2>🔴 플레이어 2</h2>
+        <strong id="score1">0 / 6</strong>
+      </div>
+      <div class="roster" id="roster1"></div>
+    </div>
+  </section>
+
+  <div class="controls">
+    <input id="search" placeholder="포켓몬 이름 또는 전국도감 번호 검색">
+    <select id="generation">
+      <option value="all">전체 세대</option>
+      <option value="1">1세대</option>
+      <option value="2">2세대</option>
+      <option value="3">3세대</option>
+      <option value="4">4세대</option>
+      <option value="5">5세대</option>
+      <option value="6">6세대</option>
+      <option value="7">7세대</option>
+      <option value="8">8세대</option>
+      <option value="9">9세대</option>
+    </select>
+    <button id="undo">↶ 선택 취소</button>
+    <button class="danger" id="reset">초기화</button>
+  </div>
+
+  <div id="message" role="status">포켓몬 목록을 준비하고 있습니다.</div>
+
+  <div class="section-head">
+    <h2>포켓몬 선택</h2>
+    <span id="count">불러오는 중...</span>
+  </div>
+  <div id="grid"></div>
+
+  <section class="panel" id="result" style="margin-top:22px">
+    <h2>🏆 드래프트 완료</h2>
+    <p>각 플레이어가 선택한 6마리를 확인해 봐.</p>
+    <pre id="resultText"></pre>
+    <div class="controls">
+      <button class="primary" id="copy">결과 복사</button>
+      <button id="newDraft">새 드래프트</button>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:22px">
+    <h2>선택 기록</h2>
+    <div class="history" id="history"></div>
+  </section>
+</main>
+
+<footer>
+  Fan-made project. Pokémon names and artwork belong to their respective owners.
+</footer>
+
+<script>
+"use strict";
+
+const API = "https://pokeapi.co/api/v2";
+const ART =
+  "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/";
+
+const GEN = {
+  1:[1,151], 2:[152,251], 3:[252,386],
+  4:[387,493], 5:[494,649], 6:[650,721],
+  7:[722,809], 8:[810,905], 9:[906,1025]
+};
+
+const state = {
+  pokemon: [],
+  teams: [[],[]],
+  history: [],
+  currentPlayer: 0,
+  loading: true
+};
+
+// 스네이크 드래프트: 1, 2, 2, 1 반복
+// 12픽: P1, P2, P2, P1, P1, P2, P2, P1, P1, P2, P2, P1
+function playerForPick(pickNumber) {
+  const pattern = [0,1,1,0];
+  return pattern[pickNumber % 4];
+}
+
+const $ = id => document.getElementById(id);
+
+function generationOf(id) {
+  for (const [gen, range] of Object.entries(GEN)) {
+    if (id >= range[0] && id <= range[1]) return Number(gen);
+  }
+  return 0;
+}
+
+function imageURL(id) {
+  return ART + id + ".png";
+}
+
+function isComplete() {
+  return state.teams.every(team => team.length === 6);
+}
+
+function selectedIds() {
+  return new Set(state.teams.flat().map(p => p.id));
+}
+
+function getDisplayName(p) {
+  return p.korean || p.name;
+}
+
+function makeElement(tag, className, text) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+async function loadPokemon() {
+  try {
+    // species URL을 파싱하는 대신 실제 포켓몬 API 목록을 사용한다.
+    const response = await fetch(`${API}/pokemon?limit=2000`);
+    if (!response.ok) throw new Error("PokéAPI request failed");
+
+    const data = await response.json();
+
+    state.pokemon = data.results.map(item => {
+      const match = item.url.match(/\/pokemon\/(\d+)\/?$/);
+      return {
+        id: match ? Number(match[1]) : 0,
+        name: item.name,
+        korean: null
+      };
+    })
+    .filter(p => p.id > 0 && p.id <= 1025)
+    .sort((a,b) => a.id - b.id);
+
+    // 목록은 즉시 표시한다. 모든 포켓몬의 상세 API를
+    // 처음부터 1,000회 이상 호출하지 않는다.
+    state.loading = false;
+    $("message").textContent =
+      "포켓몬을 선택해 드래프트를 진행하세요. 이름은 기본적으로 영문입니다.";
+    renderAll();
+
+  } catch (error) {
+    $("turn").textContent = "목록을 불러오지 못했습니다.";
+    $("detail").textContent =
+      "인터넷 연결을 확인하고 새로고침해 주세요.";
+    $("message").textContent =
+      "PokéAPI 연결에 실패했습니다.";
+    $("count").textContent = "로드 실패";
+  }
+}
+
+function renderStatus() {
+  const total = state.teams[0].length + state.teams[1].length;
+  const complete = isComplete();
+
+  if (complete) {
+    $("turn").textContent = "드래프트 완료!";
+    $("detail").textContent = "12 / 12 픽 · 두 팀 모두 완성됐습니다.";
+  } else {
+    state.currentPlayer = playerForPick(total);
+    $("turn").textContent =
+      `플레이어 ${state.currentPlayer + 1} 선택 차례`;
+    $("detail").textContent =
+      `픽 ${total + 1} / 12 · 이번 차례는 플레이어 ${state.currentPlayer + 1}`;
+  }
+
+  $("bar").style.width = `${total / 12 * 100}%`;
+  $("score0").textContent = `${state.teams[0].length} / 6`;
+  $("score1").textContent = `${state.teams[1].length} / 6`;
+
+  $("team0").classList.toggle(
+    "active", !complete && state.currentPlayer === 0
+  );
+  $("team1").classList.toggle(
+    "active", !complete && state.currentPlayer === 1
+  );
+
+  $("undo").disabled = state.history.length === 0;
+  $("result").style.display = complete ? "block" : "none";
+
+  if (complete) renderResult();
+}
+
+function renderTeams() {
+  state.teams.forEach((team, player) => {
+    const roster = $("roster" + player);
+    roster.replaceChildren();
+
+    for (let i = 0; i < 6; i++) {
+      const p = team[i];
+      const slot = makeElement(
+        "div", p ? "slot" : "slot empty",
+        p ? undefined : `선택 ${i + 1}`
+      );
+
+      if (p) {
+        const img = makeElement("img");
+        img.src = imageURL(p.id);
+        img.alt = getDisplayName(p);
+        img.loading = "lazy";
+
+        const name = makeElement("span", "", getDisplayName(p));
+        slot.append(img, name);
+      }
+
+      roster.append(slot);
+    }
+  });
+}
+
+function renderPokemon() {
+  const grid = $("grid");
+  grid.replaceChildren();
+
+  const query = $("search").value.trim().toLowerCase();
+  const gen = $("generation").value;
+  const picked = selectedIds();
+
+  const filtered = state.pokemon.filter(p => {
+    const nameMatch =
+      p.name.toLowerCase().includes(query) ||
+      String(p.id) === query;
+    const genMatch =
+      gen === "all" || generationOf(p.id) === Number(gen);
+    return nameMatch && genMatch;
+  });
+
+  $("count").textContent =
+    `${filtered.length.toLocaleString()}마리`;
+
+  const fragment = document.createDocumentFragment();
+
+  filtered.forEach(p => {
+    const isPicked = picked.has(p.id);
+    const card = makeElement(
+      "button", "card" + (isPicked ? " picked" : "")
+    );
+
+    card.type = "button";
+    card.disabled = isPicked || isComplete() || state.loading;
+    card.setAttribute("aria-label", `${p.name} 선택`);
+
+    const img = makeElement("img");
+    img.src = imageURL(p.id);
+    img.alt = p.name;
+    img.loading = "lazy";
+    img.onerror = () => { img.style.visibility = "hidden"; };
+
+    const name = makeElement("span", "name", getDisplayName(p));
+    const number = makeElement(
+      "small", "", `No. ${String(p.id).padStart(4,"0")}`
+    );
+
+    card.append(img, name, number);
+    card.addEventListener("click", () => pickPokemon(p.id));
+    fragment.append(card);
+  });
+
+  grid.append(fragment);
+}
+
+function renderHistory() {
+  const container = $("history");
+  container.replaceChildren();
+
+  if (!state.history.length) {
+    container.append(
+      makeElement("div", "history-row", "아직 선택 기록이 없습니다.")
+    );
+    return;
+  }
+
+  state.history.forEach((entry, index) => {
+    const row = makeElement("div", "history-row");
+    const img = makeElement("img");
+    img.src = imageURL(entry.pokemon.id);
+    img.alt = "";
+
+    const name = makeElement(
+      "span", "", getDisplayName(entry.pokemon)
+    );
+    const label = makeElement(
+      "small", "",
+      `${index + 1}픽 · 플레이어 ${entry.player + 1}`
+    );
+
+    row.append(img, name, label);
+    container.append(row);
+  });
+}
+
+function renderResult() {
+  $("resultText").textContent = state.teams.map((team, i) => {
+    return `플레이어 ${i + 1}\n` +
+      team.map((p, j) =>
+        `${j + 1}. ${getDisplayName(p)} (#${p.id})`
+      ).join("\n");
+  }).join("\n\n");
+}
+
+function renderAll() {
+  renderStatus();
+  renderTeams();
+  renderPokemon();
+  renderHistory();
+}
+
+function pickPokemon(id) {
+  if (state.loading || isComplete()) return;
+
+  const pokemon = state.pokemon.find(p => p.id === id);
+  if (!pokemon || selectedIds().has(id)) return;
+
+  const player = playerForPick(state.history.length);
+
+  if (state.teams[player].length >= 6) {
+    $("message").textContent = "이 팀은 이미 6마리를 선택했습니다.";
+    return;
+  }
+
+  const entry = { player, pokemon };
+  state.history.push(entry);
+  state.teams[player].push(pokemon);
+
+  $("message").textContent =
+    `플레이어 ${player + 1}: ${getDisplayName(pokemon)} 선택 완료`;
+
+  if (isComplete()) {
+    $("message").textContent = "양 팀의 6마리 선택이 완료됐습니다!";
+  }
+
+  renderAll();
+}
+
+function undoPick() {
+  const entry = state.history.pop();
+  if (!entry) return;
+
+  state.teams[entry.player].pop();
+
+  $("message").textContent =
+    `${getDisplayName(entry.pokemon)} 선택을 취소했습니다.`;
+
+  renderAll();
+}
+
+function resetDraft() {
+  if (state.history.length &&
+      !confirm("현재 드래프트를 초기화할까요?")) return;
+
+  state.teams = [[],[]];
+  state.history = [];
+  state.currentPlayer = 0;
+
+  $("message").textContent = "새 드래프트를 시작하세요.";
+  renderAll();
+}
+
+$("search").addEventListener("input", renderPokemon);
+$("generation").addEventListener("change", renderPokemon);
+$("undo").addEventListener("click", undoPick);
+$("reset").addEventListener("click", resetDraft);
+$("newDraft").addEventListener("click", resetDraft);
+
+$("copy").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText($("resultText").textContent);
+    $("message").textContent = "팀 결과를 복사했습니다.";
+  } catch (error) {
+    $("message").textContent =
+      "복사 권한이 없습니다. 결과를 직접 선택해서 복사해 주세요.";
+  }
+});
+
+loadPokemon();
+</script>
+</body>
+</html>
