@@ -335,9 +335,8 @@ const API = "https://pokeapi.co/api/v2";
 const ART =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/";
 
-// Supabase 프로젝트 정보 입력
-const SUPABASE_URL = "여기에_프로젝트_URL";
-const SUPABASE_KEY = "여기에_publishable_키";
+// 캐시 버전을 바꾸면 포켓몬 데이터를 다시 계산할 수 있음
+const CACHE_KEY = "pokedraft-final-pokemon-cache-v3";
 
 const GEN = {
   1:[1,151], 2:[152,251], 3:[252,386],
@@ -362,12 +361,24 @@ let currentRoomCode = "";
 let lastReceivedState = null;
 
 const hasSupabaseConfig =
+  SUPABASE_URL_PLACEHOLDER();
+
+function SUPABASE_URL_PLACEHOLDER() {
+  // 아래 두 상수는 본인의 기존 Supabase 설정으로 유지해야 함
+  return false;
+}
+
+// Supabase 프로젝트 정보 입력
+const SUPABASE_URL = "여기에_프로젝트_URL";
+const SUPABASE_KEY = "여기에_publishable_키";
+
+const supabaseConfigured =
   SUPABASE_URL.startsWith("https://") &&
   !SUPABASE_URL.includes("여기에_") &&
   SUPABASE_KEY.length > 20 &&
   !SUPABASE_KEY.includes("여기에_");
 
-if (window.supabase && hasSupabaseConfig) {
+if (window.supabase && supabaseConfigured) {
   supa = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
@@ -586,100 +597,225 @@ $("copyRoomCode").addEventListener("click", async () => {
   } catch {
     prompt("친구에게 이 방 코드를 보내 주세요:", code);
   }
+});
+
+/* ============================
+   로딩 최적화 기능
+   ============================ */
+
+// 브라우저에 저장된 포켓몬 목록 읽기
+function readPokemonCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+
+    const cached = JSON.parse(raw);
+
+    if (
+      cached.version !== 3 ||
+      !Array.isArray(cached.pokemon) ||
+      cached.pokemon.length < 100
+    ) {
+      return null;
+    }
+
+    const valid = cached.pokemon.every(p =>
+      Number.isInteger(p.id) &&
+      p.id >= 1 &&
+      p.id <= 1025 &&
+      typeof p.name === "string"
+    );
+
+    return valid ? cached.pokemon : null;
+  } catch (error) {
+    console.warn("포켓몬 캐시를 읽을 수 없습니다.", error);
+    return null;
+  }
+}
+
+// 계산이 끝난 목록 저장
+function writePokemonCache(pokemon) {
+  try {
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        version: 3,
+        savedAt: Date.now(),
+        pokemon
+      })
+    );
+  } catch (error) {
+    // 저장 공간 부족 등의 문제는 게임 진행을 막지 않음
+    console.warn("포켓몬 캐시 저장 실패", error);
+  }
+}
+
+// API 요청 시간 제한 및 일시적 오류 재시도
+async function fetchJSON(url, retries = 2) {
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${url}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < retries) {
+        await new Promise(resolve =>
+          setTimeout(resolve, 350 * (attempt + 1))
+        );
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  throw lastError || new Error("API 요청 실패");
+}
+
+// 한 번에 너무 많은 요청을 보내지 않도록 동시 요청 수 제한
+async function mapWithConcurrency(items, limit, worker, onProgress) {
+  let nextIndex = 0;
+  let completed = 0;
+
+  const workers = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      while (true) {
+        const index = nextIndex++;
+
+        if (index >= items.length) return;
+
+        await worker(items[index], index);
+
+        completed++;
+
+        if (onProgress) {
+          onProgress(completed, items.length);
+        }
+      }
+    }
+  );
+
+  await Promise.all(workers);
 }
 
 /*
- * 최종진화체와 진화하지 않는 포켓몬만 불러오기
- * 디자인 및 나머지 기능은 원본 그대로 유지
+ * 최종진화체 및 무진화 포켓몬 로딩
+ * 캐시가 있으면 API 요청 없이 즉시 사용
  */
 async function loadPokemon() {
-  try {
-    $("turn").textContent = "포켓몬 목록을 불러오는 중...";
-    $("detail").textContent = "한국어 이름과 진화 단계를 확인하고 있습니다.";
-    $("message").textContent = "포켓몬 목록을 불러오는 중입니다.";
+  // 1. 저장된 목록이 있다면 즉시 표시
+  const cachedPokemon = readPokemonCache();
 
-    const response = await fetch(`${API}/pokemon?limit=1025`);
-    if (!response.ok) {
-      throw new Error("PokéAPI 목록 요청 실패");
+  if (cachedPokemon) {
+    state.pokemon = cachedPokemon;
+    state.loading = false;
+
+    renderAll();
+
+    $("turn").textContent = "드래프트를 시작할 수 있습니다.";
+    $("detail").textContent =
+      "저장된 포켓몬 목록을 사용하고 있습니다.";
+    $("message").textContent =
+      `저장된 포켓몬 ${state.pokemon.length}마리를 불러왔습니다.`;
+    $("count").textContent =
+      `${state.pokemon.length.toLocaleString()}마리`;
+
+    return;
+  }
+
+  // 2. 캐시가 없을 때만 API에서 전체 데이터 계산
+  state.loading = true;
+
+  $("turn").textContent = "포켓몬 목록을 불러오는 중...";
+  $("detail").textContent = "처음 한 번만 데이터를 준비합니다.";
+  $("message").textContent = "포켓몬 목록을 가져오는 중...";
+  $("count").textContent = "준비 중...";
+
+  try {
+    const data = await fetchJSON(`${API}/pokemon?limit=1025`);
+
+    const allPokemon = data.results
+      .map(item => {
+        const match = item.url.match(/\/pokemon\/(\d+)\/?$/);
+
+        return {
+          id: match ? Number(match[1]) : 0,
+          name: item.name,
+          korean: item.name,
+          evolutionChainURL: null
+        };
+      })
+      .filter(p => p.id >= 1 && p.id <= 1025)
+      .sort((a, b) => a.id - b.id);
+
+    if (allPokemon.length < 1000) {
+      throw new Error("포켓몬 목록이 불완전합니다.");
     }
 
-    const data = await response.json();
-
-    const allPokemon = data.results.map(item => {
-      const match = item.url.match(/\/pokemon\/(\d+)\/?$/);
-
-      return {
-        id: match ? Number(match[1]) : 0,
-        name: item.name,
-        korean: null,
-        evolutionChainURL: null
-      };
-    })
-    .filter(p => p.id >= 1 && p.id <= 1025)
-    .sort((a, b) => a.id - b.id);
-
-    const batchSize = 12;
     const chainURLs = new Set();
 
-    // 한국어 이름과 진화 체인 주소 가져오기
-    for (let start = 0; start < allPokemon.length; start += batchSize) {
-      const batch = allPokemon.slice(start, start + batchSize);
+    // 3. 종 정보 요청을 병렬 처리해 첫 로딩 시간 단축
+    $("message").textContent =
+      `한국어 이름과 진화 정보를 확인하는 중... 0/${allPokemon.length}`;
 
-      await Promise.all(batch.map(async p => {
-        try {
-          const speciesResponse = await fetch(
-            `${API}/pokemon-species/${p.id}/`
-          );
+    await mapWithConcurrency(
+      allPokemon,
+      35,
+      async p => {
+        const species = await fetchJSON(
+          `${API}/pokemon-species/${p.id}/`
+        );
 
-          if (!speciesResponse.ok) {
-            throw new Error(`Species ${p.id} 요청 실패`);
-          }
+        const koreanName = species.names?.find(
+          entry => entry.language?.name === "ko"
+        );
 
-          const species = await speciesResponse.json();
+        p.korean = koreanName?.name || p.name;
+        p.evolutionChainURL = species.evolution_chain?.url || null;
 
-          const koreanName = species.names?.find(
-            entry => entry.language?.name === "ko"
-          );
-
-          p.korean = koreanName?.name || null;
-          p.evolutionChainURL = species.evolution_chain?.url || null;
-
-          if (p.evolutionChainURL) {
-            chainURLs.add(p.evolutionChainURL);
-          }
-        } catch (error) {
-          console.warn(`No.${p.id} 종 데이터 로드 실패`, error);
+        if (p.evolutionChainURL) {
+          chainURLs.add(p.evolutionChainURL);
         }
-      }));
-
-      $("message").textContent =
-        `포켓몬 정보 확인 중... ${Math.min(start + batchSize, allPokemon.length)}/${allPokemon.length}`;
-    }
+      },
+      (done, total) => {
+        $("message").textContent =
+          `포켓몬 종 정보 확인 중... ${done}/${total}`;
+      }
+    );
 
     if (chainURLs.size === 0) {
-      throw new Error("진화 체인 데이터를 불러오지 못했습니다.");
+      throw new Error("진화 체인 주소를 찾을 수 없습니다.");
     }
 
-    // 각 진화 체인에서 더 이상 진화하지 않는 마지막 단계 찾기
-    const finalSpeciesIds = new Set();
+    // 4. 중복을 제거한 진화 체인만 병렬 요청
     const urls = [...chainURLs];
+    const finalSpeciesIds = new Set();
 
-    for (let start = 0; start < urls.length; start += batchSize) {
-      const batch = urls.slice(start, start + batchSize);
+    $("message").textContent =
+      `진화 단계 분석 중... 0/${urls.length}`;
 
-      await Promise.all(batch.map(async url => {
-        const chainResponse = await fetch(url);
-
-        if (!chainResponse.ok) {
-          throw new Error("진화 체인 요청 실패: " + url);
-        }
-
-        const chainData = await chainResponse.json();
+    await mapWithConcurrency(
+      urls,
+      35,
+      async url => {
+        const chainData = await fetchJSON(url);
 
         function visit(node) {
           const children = node.evolves_to || [];
 
-          // 더 진화할 단계가 없으면 최종진화체 또는 무진화 포켓몬
           if (children.length === 0) {
             const match = node.species.url.match(
               /\/pokemon-species\/(\d+)\/?/
@@ -696,39 +832,48 @@ async function loadPokemon() {
         }
 
         visit(chainData.chain);
-      }));
+      },
+      (done, total) => {
+        $("message").textContent =
+          `진화 단계 분석 중... ${done}/${total}`;
+      }
+    );
 
-      $("message").textContent =
-        `진화 단계 분석 중... ${Math.min(start + batchSize, urls.length)}/${urls.length}`;
-    }
-
-    // 전체 포켓몬에서 최종진화체만 남김
+    // 5. 최종 진화형과 진화하지 않는 포켓몬만 추리기
     const finalPokemon = allPokemon.filter(p =>
       finalSpeciesIds.has(p.id)
     );
 
-    if (finalPokemon.length === 0) {
-      throw new Error("최종진화 포켓몬 목록이 비어 있습니다.");
+    if (finalPokemon.length < 100) {
+      throw new Error("필터링 결과가 비정상적입니다.");
     }
+
+    // 6. 다음 방문을 위해 계산 결과 저장
+    writePokemonCache(finalPokemon);
 
     state.pokemon = finalPokemon;
     state.loading = false;
 
     renderAll();
 
+    $("turn").textContent = "드래프트를 시작할 수 있습니다.";
+    $("detail").textContent =
+      "최종진화체 및 진화하지 않는 포켓몬 목록이 준비됐습니다.";
     $("message").textContent =
-      `최종진화체 및 진화하지 않는 포켓몬 ${state.pokemon.length}마리를 불러왔습니다.`;
+      `포켓몬 ${finalPokemon.length}마리 준비 완료! 다음 접속부터는 더 빠르게 표시됩니다.`;
+    $("count").textContent =
+      `${finalPokemon.length.toLocaleString()}마리`;
 
   } catch (error) {
-    console.error(error);
+    console.error("포켓몬 로딩 실패:", error);
 
     state.loading = true;
 
     $("turn").textContent = "목록을 불러오지 못했습니다.";
     $("detail").textContent =
-      "인터넷 연결을 확인하고 새로고침해 주세요.";
+      "인터넷 연결이나 PokéAPI 상태를 확인해 주세요.";
     $("message").textContent =
-      "포켓몬 또는 진화 데이터를 불러오지 못했습니다. 새로고침해 주세요.";
+      "데이터 로딩에 실패했습니다. 잠시 후 새로고침해 주세요.";
     $("count").textContent = "로드 실패";
   }
 }
